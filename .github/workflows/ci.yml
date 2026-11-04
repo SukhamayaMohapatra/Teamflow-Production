@@ -1,55 +1,128 @@
-name: CI and CD
+
+name: TeamFlow CI and CD
+
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+
   pull_request:
-    branches: [main]
+    branches:
+      - main
+
+permissions:
+  contents: read
+
 jobs:
+  # -----------------------------------------------
+  # JOB 1: VERIFY BACKEND AND FRONTEND
+  # -----------------------------------------------
   verify:
+    name: Verify Application
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Install root dependencies
-        run: npm install
+        run: npm ci
+
       - name: Install server dependencies
-        run: npm install --prefix server
+        run: npm ci --prefix server
+
       - name: Install client dependencies
-        run: npm install --prefix client
+        run: npm ci --prefix client
+
       - name: Check server syntax
         run: npm run check --prefix server
+
       - name: Build frontend
         run: npm run build --prefix client
-        env:
-          VITE_API_URL: https://api.example.com/api
-  deploy:
+
+  # -----------------------------------------------
+  # JOB 2: DEPLOY FRONTEND TO VERCEL
+  # -----------------------------------------------
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
+
       - name: Pull Vercel production settings
         working-directory: client
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - name: Build and deploy frontend
+
+      - name: Build Vercel production artifacts
         working-directory: client
-        run: vercel build --prod --token="$VERCEL_TOKEN" && vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - name: Trigger Render deployment
-        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK"
+
+      - name: Deploy frontend to Vercel
+        working-directory: client
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
         env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  # -----------------------------------------------
+  # JOB 3: DEPLOY BACKEND TO RENDER
+  # -----------------------------------------------
+  deploy-backend:
+    name: Deploy Backend to Render
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install server dependencies
+        run: npm ci --prefix server
+
+      - name: Trigger Render deployment
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "ERROR: RENDER_DEPLOY_HOOK_URL GitHub secret is missing or empty."
+            exit 1
+          fi
+
+          echo "Triggering Render deployment..."
+
+          curl --fail --silent --show-error \
+            --request POST \
+            "$RENDER_DEPLOY_HOOK_URL"
+
+          echo "Render deployment trigger submitted successfully."
