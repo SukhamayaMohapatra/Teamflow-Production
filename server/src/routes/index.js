@@ -1,0 +1,10 @@
+import {Router} from 'express';import {asyncHandler} from '../utils/asyncHandler.js';import {requireAuth,requireRole} from '../middleware/auth.js';import {validate} from '../middleware/validate.js';import {loginSchema,projectSchema,taskSchema,taskPatchSchema,updateSchema,userSchema} from '../validators/schemas.js';
+import * as auth from '../controllers/authController.js';import * as users from '../controllers/userController.js';import * as projects from '../controllers/projectController.js';import * as tasks from '../controllers/taskController.js';import * as dashboard from '../controllers/dashboardController.js';
+const r=Router();const wrap=fn=>asyncHandler(fn);
+r.get('/health',(_q,s)=>s.json({success:true,status:'ok',timestamp:new Date().toISOString()}));
+r.post('/auth/login',validate(loginSchema),wrap(auth.login));r.post('/auth/logout',wrap(auth.logout));r.get('/auth/me',requireAuth,wrap(auth.me));
+r.use(requireAuth);
+r.get('/users',requireRole('ADMIN'),wrap(users.listUsers));r.post('/users',requireRole('ADMIN'),validate(userSchema),wrap(users.createUser));r.patch('/users/:id',requireRole('ADMIN'),wrap(users.updateUser));r.delete('/users/:id',requireRole('ADMIN'),wrap(users.deleteUser));
+r.get('/projects',wrap(projects.listProjects));r.post('/projects',requireRole('ADMIN'),validate(projectSchema),wrap(projects.createProject));r.get('/projects/:id',wrap(projects.getProject));r.patch('/projects/:id',requireRole('ADMIN'),wrap(projects.updateProject));r.delete('/projects/:id',requireRole('ADMIN'),wrap(projects.deleteProject));
+r.get('/tasks',wrap(tasks.listTasks));r.post('/tasks',requireRole('ADMIN'),validate(taskSchema),wrap(tasks.createTask));r.get('/tasks/:id',wrap(tasks.getTask));r.patch('/tasks/:id',validate(taskPatchSchema),wrap(tasks.updateTask));r.delete('/tasks/:id',requireRole('ADMIN'),wrap(tasks.deleteTask));r.post('/tasks/:id/updates',validate(updateSchema),wrap(tasks.addUpdate));
+r.get('/dashboard',wrap(dashboard.dashboard));export default r;

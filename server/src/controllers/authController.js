@@ -1,0 +1,5 @@
+import bcrypt from 'bcryptjs';import jwt from 'jsonwebtoken';import User from '../models/User.js';import {AppError} from '../utils/errors.js';
+const cookieOptions=()=>({httpOnly:true,secure:process.env.COOKIE_SECURE==='true',sameSite:process.env.NODE_ENV==='production'?'none':'lax',path:'/',maxAge:24*60*60*1000});
+export async function login(req,res){const {email,password}=req.body;const user=await User.findOne({email:email.toLowerCase()}).select('+password');if(!user||!user.isActive||!(await bcrypt.compare(password,user.password)))throw new AppError('Invalid email or password',401);const token=jwt.sign({sub:user.id,role:user.role},process.env.JWT_SECRET,{expiresIn:process.env.JWT_EXPIRES_IN||'1d',issuer:'teamflow-api',audience:'teamflow-client'});res.cookie('accessToken',token,cookieOptions()).json({success:true,data:{user:{id:user.id,name:user.name,email:user.email,role:user.role}}});}
+export function logout(_req,res){res.clearCookie('accessToken',{...cookieOptions(),maxAge:undefined}).json({success:true,message:'Logged out'});}
+export function me(req,res){res.json({success:true,data:{user:req.user}});}

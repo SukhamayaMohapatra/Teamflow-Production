@@ -1,0 +1,5 @@
+import bcrypt from 'bcryptjs';import User from '../models/User.js';import {AppError} from '../utils/errors.js';
+export async function listUsers(_req,res){const users=await User.find({isActive:true}).select('name email role createdAt').sort({name:1});res.json({success:true,data:users});}
+export async function createUser(req,res){const {name,email,password,role}=req.body;const hash=await bcrypt.hash(password,12);const user=await User.create({name,email,password:hash,role});res.status(201).json({success:true,data:user});}
+export async function updateUser(req,res){const user=await User.findByIdAndUpdate(req.params.id,{$set:{name:req.body.name,role:req.body.role,isActive:req.body.isActive}},{new:true,runValidators:true});if(!user)throw new AppError('User not found',404);res.json({success:true,data:user});}
+export async function deleteUser(req,res){if(req.params.id===req.user.id)throw new AppError('You cannot deactivate your own account',400);const user=await User.findByIdAndUpdate(req.params.id,{isActive:false},{new:true});if(!user)throw new AppError('User not found',404);res.json({success:true,message:'User deactivated'});}

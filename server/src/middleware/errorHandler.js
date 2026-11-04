@@ -1,0 +1,2 @@
+export function notFound(req,_res,next){const e=new Error(`Route not found: ${req.method} ${req.originalUrl}`);e.statusCode=404;next(e);}
+export function errorHandler(err,_req,res,_next){const status=err.statusCode|| (err.name==='ValidationError'||err.name==='CastError'?400:err.code===11000?409:500);const message=err.code===11000?'A record with this value already exists':status===500?'Internal server error':err.message; if(status>=500)console.error(err);res.status(status).json({success:false,message});}
