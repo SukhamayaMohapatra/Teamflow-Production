@@ -195,9 +195,8 @@ export default function TaskDialog({
           Cancel
         </Button>
         <Button
-          type="submit"
           variant="contained"
-          onClick={onClose}
+          onClick={submit}
           disabled={
             busy ||
             !form.title ||
