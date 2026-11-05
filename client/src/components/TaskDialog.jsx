@@ -1,1 +1,214 @@
-import {useEffect,useState} from 'react';import {Alert,Button,Dialog,DialogActions,DialogContent,DialogTitle,Grid,MenuItem,TextField} from '@mui/material';import {api} from '../lib/api';const empty={title:'',description:'',project:'',assignee:'',priority:'MEDIUM',status:'TO_DO',deadline:'',progress:0};export default function TaskDialog({open,onClose,onSaved,task,projects,users}){const [form,setForm]=useState(empty),[error,setError]=useState(''),[busy,setBusy]=useState(false);useEffect(()=>{setForm(task?{...empty,...task,project:task.project?._id||task.project,assignee:task.assignee?._id||task.assignee,deadline:task.deadline?.slice(0,10)||''}:empty);setError('');},[task,open]);const change=e=>setForm(f=>({...f,[e.target.name]:e.target.value}));const submit=async()=>{setBusy(true);setError('');try{const payload={...form,progress:Number(form.progress)};if(task)await api.patch(`/tasks/${task._id}`,payload);else await api.post('/tasks',payload);onSaved();onClose();}catch(e){setError(e.message);}finally{setBusy(false);}};return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle fontWeight={800}>{task?'Edit task':'Create task'}</DialogTitle><DialogContent><Grid container spacing={2} sx={{mt:.2}}>{error&&<Grid item xs={12}><Alert severity="error">{error}</Alert></Grid>}<Grid item xs={12}><TextField fullWidth label="Task title" name="title" value={form.title} onChange={change}/></Grid><Grid item xs={12}><TextField fullWidth multiline minRows={2} label="Description" name="description" value={form.description} onChange={change}/></Grid><Grid item xs={12} sm={6}><TextField select fullWidth label="Project" name="project" value={form.project} onChange={change}>{projects.map(p=><MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>)}</TextField></Grid><Grid item xs={12} sm={6}><TextField select fullWidth label="Assignee" name="assignee" value={form.assignee} onChange={change}>{users.map(u=><MenuItem key={u._id} value={u._id}>{u.name}</MenuItem>)}</TextField></Grid><Grid item xs={12} sm={6}><TextField select fullWidth label="Priority" name="priority" value={form.priority} onChange={change}><MenuItem value="HIGH">High</MenuItem><MenuItem value="MEDIUM">Medium</MenuItem><MenuItem value="LOW">Low</MenuItem></TextField></Grid><Grid item xs={12} sm={6}><TextField fullWidth type="date" label="Deadline" name="deadline" value={form.deadline} onChange={change} InputLabelProps={{shrink:true}}/></Grid>{task&&<><Grid item xs={12} sm={6}><TextField select fullWidth label="Status" name="status" value={form.status} onChange={change}>{[['TO_DO','To Do'],['IN_PROGRESS','In Progress'],['UNDER_REVIEW','Under Review'],['COMPLETED','Completed']].map(([v,l])=><MenuItem key={v} value={v}>{l}</MenuItem>)}</TextField></Grid><Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Progress (%)" name="progress" value={form.progress} onChange={change} inputProps={{min:0,max:100}}/></Grid></>}</Grid></DialogContent><DialogActions sx={{p:3}}><Button color="inherit" onClick={onClose}>Cancel</Button><Button variant="contained" onClick={submit} disabled={busy||!form.title||!form.project||!form.assignee||!form.deadline}>{busy?'Saving...':'Save task'}</Button></DialogActions></Dialog>}
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  MenuItem,
+  TextField,
+} from "@mui/material";
+import { api } from "../lib/api";
+const empty = {
+  title: "",
+  description: "",
+  project: "",
+  assignee: "",
+  priority: "MEDIUM",
+  status: "TO_DO",
+  deadline: "",
+  progress: 0,
+};
+export default function TaskDialog({
+  open,
+  onClose,
+  onSaved,
+  task,
+  projects,
+  users,
+}) {
+  const [form, setForm] = useState(empty),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setForm(
+      task
+        ? {
+            ...empty,
+            ...task,
+            project: task.project?._id || task.project,
+            assignee: task.assignee?._id || task.assignee,
+            deadline: task.deadline?.slice(0, 10) || "",
+          }
+        : empty,
+    );
+    setError("");
+  }, [task, open]);
+  const change = (e) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const submit = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const payload = { ...form, progress: Number(form.progress) };
+      if (task) await api.patch(`/tasks/${task._id}`, payload);
+      else await api.post("/tasks", payload);
+      onSaved();
+      onClose();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle fontWeight={800}>
+        {task ? "Edit task" : "Create task"}
+      </DialogTitle>
+      <DialogContent>
+        <Grid container spacing={2} sx={{ mt: 0.2 }}>
+          {error && (
+            <Grid item xs={12}>
+              <Alert severity="error">{error}</Alert>
+            </Grid>
+          )}
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Task title"
+              name="title"
+              value={form.title}
+              onChange={change}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              multiline
+              minRows={2}
+              label="Description"
+              name="description"
+              value={form.description}
+              onChange={change}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              select
+              fullWidth
+              label="Project"
+              name="project"
+              value={form.project}
+              onChange={change}
+            >
+              {projects.map((p) => (
+                <MenuItem key={p._id} value={p._id}>
+                  {p.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              select
+              fullWidth
+              label="Assignee"
+              name="assignee"
+              value={form.assignee}
+              onChange={change}
+            >
+              {users.map((u) => (
+                <MenuItem key={u._id} value={u._id}>
+                  {u.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              select
+              fullWidth
+              label="Priority"
+              name="priority"
+              value={form.priority}
+              onChange={change}
+            >
+              <MenuItem value="HIGH">High</MenuItem>
+              <MenuItem value="MEDIUM">Medium</MenuItem>
+              <MenuItem value="LOW">Low</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Deadline"
+              name="deadline"
+              value={form.deadline}
+              onChange={change}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          {task && (
+            <>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Status"
+                  name="status"
+                  value={form.status}
+                  onChange={change}
+                >
+                  {[
+                    ["TO_DO", "To Do"],
+                    ["IN_PROGRESS", "In Progress"],
+                    ["UNDER_REVIEW", "Under Review"],
+                    ["COMPLETED", "Completed"],
+                  ].map(([v, l]) => (
+                    <MenuItem key={v} value={v}>
+                      {l}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Progress (%)"
+                  name="progress"
+                  value={form.progress}
+                  onChange={change}
+                  inputProps={{ min: 0, max: 100 }}
+                />
+              </Grid>
+            </>
+          )}
+        </Grid>
+      </DialogContent>
+      <DialogActions sx={{ p: 3 }}>
+        <Button color="inherit" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+    
+          variant="contained"
+          onClick={submit}
+          disabled={
+            busy ||
+            !form.title ||
+            !form.project ||
+            !form.assignee ||
+            !form.deadline
+          }
+        >
+          {busy ? "Saving..." : "Save task"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
